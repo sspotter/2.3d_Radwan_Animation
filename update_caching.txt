@@ -1,0 +1,164 @@
+Ahh, scroll-driven animation — that explains the frame approach 😄
+Good news: you can **keep the scroll control** *and* kill the egress problem. Here’s a clean, practical task list you can hand to an engineer (or use yourself).
+
+---
+
+## Goal
+
+✔ Keep scroll-synced animation
+✔ Reduce requests + egress
+✔ Improve performance + UX
+✔ Make it scalable
+
+---
+
+## 🔥 Priority 1 — Architecture changes (biggest wins)
+
+### **Task 1: Replace image frames with a single video**
+
+**Why**
+
+* 1 request instead of ~1000
+* Native browser decoding
+* Dramatically lower bandwidth
+
+**How**
+
+* Export animation as **MP4 + WebM**
+* Use:
+
+  * `requestVideoFrameCallback` **or**
+  * `video.currentTime = scrollProgress * duration`
+
+**Result**
+
+* Scroll controls video playback
+* Zero frame images
+* 90%+ egress reduction
+
+✅ This is the *industry standard* approach now
+
+---
+
+### **Task 2: Implement scroll → video sync**
+
+**Subtasks**
+
+* Map scroll position → `0–1` progress
+* Set `video.currentTime`
+* Disable autoplay audio
+* Use `position: sticky` for smooth UX
+
+**Bonus**
+
+* Throttle updates with `requestAnimationFrame`
+
+---
+
+## ⚡ Priority 2 — If video isn’t viable
+
+### **Task 3: Convert frames into sprite sheets**
+
+**Why**
+
+* 1000 images → ~10–20 files
+* Massive request reduction
+
+**How**
+
+* Combine frames into large atlases
+* Animate via `background-position`
+* Sync scroll → frame index
+
+**Tradeoff**
+
+* More JS + CSS complexity
+* Still heavier than video
+
+---
+
+### **Task 4: Aggressive caching**
+
+**Required**
+
+* `Cache-Control: public, max-age=31536000, immutable`
+* Hash filenames
+* Ensure CDN honors cache headers
+
+**Result**
+
+* Reloads = no re-downloads
+* Returning users cost ~0 egress
+
+---
+
+## 🚀 Priority 3 — Performance polish
+
+### **Task 5: Lazy-load the animation**
+
+Only load animation when:
+
+* Section enters viewport
+* User scrolls near it
+
+Use:
+
+* `IntersectionObserver`
+
+---
+
+### **Task 6: Reduce asset weight**
+
+* Convert to **WebP / AVIF**
+* Lower resolution (users won’t notice while scrolling)
+* Drop alpha channels if possible
+
+---
+
+## 🌍 Priority 4 — Infrastructure fixes
+
+### **Task 7: Put assets behind a CDN**
+
+* Cloudflare / Vercel / Netlify
+* Cache at the edge
+* Reduce origin egress
+
+---
+
+### **Task 8: Monitor usage**
+
+Add:
+
+* Network request count per page load
+* Total bytes transferred
+* Time-to-interactive
+
+This helps catch regressions early.
+
+---
+
+## ✅ Ideal final setup (what “good” looks like)
+
+* 1 video file (MP4/WebM)
+* Scroll controls `currentTime`
+* Cached for 1 year
+* Lazy-loaded
+* Served from CDN
+
+**Result**
+
+* From ~1000 requests → **1**
+* From 150% egress → **<10%**
+* Smoother scroll
+* Faster page loads
+
+---
+
+## One clarifying question (important)
+
+Is the animation:
+
+* **Purely visual** (no clickable hotspots), or
+* **Interactive per-frame** (hover/click regions)?
+
+That decides whether video is *perfect* or whether we need a hybrid approach.
